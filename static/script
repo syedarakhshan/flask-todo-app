@@ -1,0 +1,53 @@
+document.addEventListener("DOMContentLoaded", loadTasks);
+document.getElementById("addBtn").addEventListener("click", addTask);
+
+async function loadTasks() {
+    const res = await fetch("/tasks");
+    const tasks = await res.json();
+    const list = document.getElementById("taskList");
+    list.innerHTML = "";
+    tasks.forEach(task => renderTask(task));
+}
+
+function renderTask(task) {
+    const li = document.createElement("li");
+    li.innerHTML = `
+        <span>${task.text}</span>
+        <div>
+            <button class="edit" onclick="editTask(${task.id}, '${task.text}')">Edit</button>
+            <button onclick="deleteTask(${task.id})">Delete</button>
+        </div>
+    `;
+    document.getElementById("taskList").appendChild(li);
+}
+
+async function addTask() {
+    const input = document.getElementById("taskInput");
+    const text = input.value.trim();
+    if (!text) return alert("Enter a task!");
+    const res = await fetch("/tasks", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({text})
+    });
+    const newTask = await res.json();
+    renderTask(newTask);
+    input.value = "";
+}
+
+async function editTask(id, oldText) {
+    const newText = prompt("Edit your task:", oldText);
+    if (newText === null || newText.trim() === "") return;
+    await fetch(`/tasks/${id}`, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({text: newText})
+    });
+    loadTasks();
+}
+
+async function deleteTask(id) {
+    if (!confirm("Delete this task?")) return;
+    await fetch(`/tasks/${id}`, {method: "DELETE"});
+    loadTasks();
+}
